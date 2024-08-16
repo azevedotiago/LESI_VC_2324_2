@@ -5,8 +5,10 @@ set(CMAKE_CXX_STANDARD 11)
 
 find_package(OpenCV REQUIRED)
 
-include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${OpenCV_INCLUDE_DIRS} include)
 
-add_executable(main src/main.cpp include/vc.c)
+add_executable(main src/main.cpp src/vc.c
+        src/video_processor.cpp
+        include/video_processor.h)
 
 target_link_libraries(main ${OpenCV_LIBS})

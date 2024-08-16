@@ -1,7 +1,12 @@
 #define VC_DEBUG
 
-#define MAX(a,b) (a > b ? a : b)
-#define MIN(a,b) (a < b ? a : b)
+#ifndef MAX
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
 
 #define MAXRGB(r,g,b) (r > b ? ( r > g  ? r : g ) : ( b > g ? b : g ))
 #define MINRGB(r,g,b) (r < b ? ( r < g  ? r : g ) : ( b < g ? b : g ))
