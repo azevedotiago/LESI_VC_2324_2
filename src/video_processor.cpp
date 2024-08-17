@@ -5,7 +5,6 @@
 #include <opencv2/videoio.hpp>
 #include "video_processor.h"
 #include <string>
-#include <chrono>
 #include <vector>
 #include <map>
 #include <cmath>
@@ -59,7 +58,7 @@ struct LabelCor {
 // Função para calcular o valor da resistência com base nas cores encontradas
 std::string calcularValorResistencia(const std::vector<std::pair<int, std::string>>& cores_encontradas) {
 	if (cores_encontradas.size() < 3) {
-		return "Invalid resistor";
+		return "Resistencia invalida";
 	}
 
 	// Mapeamento das cores para valores numéricos
@@ -79,61 +78,42 @@ std::string calcularValorResistencia(const std::vector<std::pair<int, std::strin
 	return std::to_string(resistencia) + " Ohm  ~" + std::to_string(tolerancia) + "%";
 }
 
-
-//Conta resistencias
-int contaResistencia(const int valor, bool primeiraVez) {
-	int anterior = 0;
-
-	if (valor != anterior && primeiraVez == true)
-	{
-		int nResistencia = 0;
-		anterior = valor;
-		primeiraVez = false;
-		return nResistencia++;
-	}
-
-}
-
 // Função para desenhar caixa de delimitação, rótulos e centro de massa
 void drawBoundingBoxAndLabel(cv::Mat& image, const OVC& blob, const std::vector<std::pair<int, std::string>>& labels, const std::string& valorResistencia) {
 	// Desenha retângulo ao redor do blob
-	cv::rectangle(image, cv::Point(blob.x, blob.y), cv::Point(blob.x + blob.width, blob.y + blob.height), cv::Scalar(0, 0, 0), 2);
+	rectangle(image, cv::Point(blob.x, blob.y), cv::Point(blob.x + blob.width, blob.y + blob.height), cv::Scalar(0, 255, 0), 2);
 
 	// Adiciona texto do valor da resistência
-	cv::putText(image, valorResistencia, cv::Point(blob.x, blob.y + blob.height + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0), 1);
+	putText(image, valorResistencia, cv::Point(blob.x, blob.y + blob.height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
 
 	// Desenha o centro de massa
-	cv::circle(image, cv::Point(blob.xc, blob.yc), 3, cv::Scalar(0, 0, 0), -1);
-
+	circle(image, cv::Point(blob.xc, blob.yc), 3, cv::Scalar(255, 255, 255), -1);
 }
+
 
 // Função para identificar blobs e cores
 void identificarBlobsCores(IVC* hsvCropImg, std::vector<std::pair<int, std::string>>& cores_encontradas) {
-	int total_pixels = hsvCropImg->width * hsvCropImg->height;
-	int count_Blue = 0;
+	const int total_pixels = hsvCropImg->width * hsvCropImg->height;
+	constexpr int count_Blue = 0;
 
-	for (int j = 0; j < num_cores; j++) {
+	for (auto & core : cores) {
 		// Cria nova imagem para segmentação
 		IVC* segmentedCropImg = vc_image_new(hsvCropImg->width, hsvCropImg->height, 3, hsvCropImg->levels);
 
 		// Realiza segmentação HSV
-		vc_hsv_segmentation(hsvCropImg, segmentedCropImg, cores[j].hmin, cores[j].hmax, cores[j].smin, cores[j].smax, cores[j].vmin, cores[j].vmax);
+		vc_hsv_segmentation(hsvCropImg, segmentedCropImg, core.hmin, core.hmax, core.smin, core.smax, core.vmin, core.vmax);
 
 		// Salva imagem segmentada
 		char filename[50];
-		//sprintf_s(filename, "crop_segmented_%s.pgm", cores[j].nome);
 		vc_write_image(filename, segmentedCropImg);
 
 		int cor_presente = 0;
 		// Verifica se a cor está presente na imagem segmentada
 		for (int y = 0; y < segmentedCropImg->height; y++) {
 			for (int x = 0; x < segmentedCropImg->width; x++) {
-				int pos = (y * segmentedCropImg->bytesperline) + (x * segmentedCropImg->channels);
+				const int pos = y * segmentedCropImg->bytesperline + x * segmentedCropImg->channels;
 				if (segmentedCropImg->data[pos] == 255) {
-					if (strcmp(cores[j].nome, "Blue") == 0) {
-						//    count_Blue++;
-					}
-					cores_encontradas.push_back({ x, cores[j].nome });
+					cores_encontradas.emplace_back( x, core.nome );
 					cor_presente = 1;
 					break;
 				}
@@ -144,7 +124,7 @@ void identificarBlobsCores(IVC* hsvCropImg, std::vector<std::pair<int, std::stri
 		vc_image_free(segmentedCropImg);
 	}
 
-	if ((float(count_Blue) / total_pixels) > 0.5) {
+	if (static_cast<float>(count_Blue) / total_pixels > 0.5) {
 		cores_encontradas.clear(); // Se mais de 50% dos pixels são azuis, descarta essa blob
 	}
 
@@ -164,45 +144,83 @@ VideoInfo getVideoInfo(cv::VideoCapture& cap) {
     return info;
 }
 
+void drawInfoText(cv::Mat& frame, const VideoInfo& info, int framesRead) {
+    // Definir cores
+    cv::Scalar colorTitle(0, 0, 198);            // TÍTULOS: Vermelho Escuro
+    cv::Scalar colorValue(0, 0, 0);              // VALORES: Preto
+    cv::Scalar colorSeparator(255, 255, 255);    // SEPARADORES: Branco
+
+    // Definir o texto
+    std::string textFrames = "Frames lidos: ";
+    std::string textFramesValue = std::to_string(framesRead) + "/" + std::to_string(info.totalFrames);
+    std::string textFPS = "FPS";
+    std::string textFPSValue = std::to_string(static_cast<int>(info.frameRate));
+    std::string textResolution = "Resolucao: ";
+    std::string textResolutionValue = std::to_string(info.width) + "x" + std::to_string(info.height);
+
+    // Posição inicial do texto
+    int baseLine = 0;
+    cv::Size textSize = getTextSize(textFrames + textFramesValue + " | " + textFPSValue + " " + textFPS + " | " + textResolution + textResolutionValue, cv::FONT_HERSHEY_SIMPLEX, 0.7, 1, &baseLine);
+    cv::Point textOrg((frame.cols - textSize.width) / 2, frame.rows - 10);
+
+    // Desenhar cada parte do texto com a cor correspondente e espessura adequada
+    putText(frame, textFrames, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorTitle, 2);
+    textOrg.x += getTextSize(textFrames, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
+
+    putText(frame, textFramesValue, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorValue, 1);
+    textOrg.x += getTextSize(textFramesValue, cv::FONT_HERSHEY_SIMPLEX, 0.7, 1, &baseLine).width;
+
+    putText(frame, " | ", textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorSeparator, 2);
+    textOrg.x += getTextSize(" | ", cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
+
+    putText(frame, textFPSValue, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorValue, 1);
+    textOrg.x += getTextSize(textFPSValue, cv::FONT_HERSHEY_SIMPLEX, 0.7, 1, &baseLine).width;
+
+    putText(frame, " ", textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorSeparator, 2);
+    textOrg.x += getTextSize(" ", cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
+
+    putText(frame, textFPS, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorTitle, 2);
+    textOrg.x += getTextSize(textFPS, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
+
+    putText(frame, " | ", textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorSeparator, 2);
+    textOrg.x += getTextSize(" | ", cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
+
+    putText(frame, textResolution, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorTitle, 2);
+    textOrg.x += getTextSize(textResolution, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
+
+    putText(frame, textResolutionValue, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorValue, 1);
+}
+
 void displayVideoInfo(const VideoInfo& info) {
-    std::cout << "Total Frames: " << info.totalFrames << std::endl;
-    std::cout << "Frame rate: " << info.frameRate << " FPS" << std::endl;
-    std::cout << "Resolucao: " << info.width << "x" << info.height << " pixels" << std::endl;
+	std::cout << "+----------------------" << std::endl;
+    std::cout << "| TOTAL FRAMES: " << info.totalFrames << std::endl;
+    std::cout << "| FRAME RATE: " << info.frameRate << " FPS" << std::endl;
+    std::cout << "| RESOLUTION: " << info.width << "x" << info.height << std::endl;
+    std::cout << "+----------------------" << std::endl;
 }
 
 void processVideo(cv::VideoCapture& cap) {
-    // Configurar o VideoWriter
     VideoInfo info = getVideoInfo(cap);
     std::string outputPath = "../data/samples/output_video.mp4";
     std::string str;
+    std::vector<OVC> blob_list;
+    std::vector<LabelCor> labelsCores;
     cv::VideoWriter writer(outputPath, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), info.frameRate, cv::Size(info.width, info.height));
-
-    int nResistencias = 0;
-    std::vector<OVC> blob_list; // Lista para armazenar blobs detectados anteriormente
+    cv::Mat frame, frameRGB;
+    int framesRead = 0;
 
     if (!writer.isOpened()) {
-        std::cerr << "Erro ao abrir o arquivo de saída de vídeo." << std::endl;
+        std::cerr << "Erro ao abrir o ficheiro de saída de vídeo." << std::endl;
         return;
     }
 
-    cv::Mat frame, frameRGB;
-    std::vector<LabelCor> labelsCores;
-
-    bool resistenciaCalculada = false;
-	int framesRead = 0;
-
     while (cap.read(frame)) {
         if (frame.empty()) break;
+
     	framesRead++;
-
-    	// Cria o texto com a informação do vídeo
-    	std::string infoText = "Frames lidos: " + std::to_string(framesRead) + "/" + std::to_string(info.totalFrames) +
-							   " | " + std::to_string(static_cast<int>(info.frameRate)) + " FPS" +
-							   " | " + std::to_string(info.width) + "x" + std::to_string(info.height) + " pixels";
-
         info.currentFrame = static_cast<int>(cap.get(cv::CAP_PROP_POS_FRAMES));
-        // Converte frame de BGR para RGB
-        cvtColor(frame, frameRGB, cv::COLOR_BGR2RGB);
+
+        cvtColor(frame, frameRGB, cv::COLOR_BGR2RGB); // Frame BGR --> RGB
 
         // Criação de imagens para processamento
         IVC* unsegmentedImg = vc_image_new(info.width, info.height, 3, 255);
@@ -256,7 +274,6 @@ void processVideo(cv::VideoCapture& cap) {
         // Processamento dos blobs filtrados
         for (const auto& blob : filteredBlobs) {
             if (blob.area > 1200 && blob.area < 8000) { // exclui o que não é resistência
-
                 int x1 = blob.x;
                 int y1 = blob.y;
                 int x2 = blob.x + blob.width;
@@ -300,12 +317,10 @@ void processVideo(cv::VideoCapture& cap) {
         }
 
     	// Desenhar o texto da informação no centro ao fundo do vídeo
-    	int baseline = 0;
-    	cv::Size textSize = cv::getTextSize(infoText, cv::FONT_HERSHEY_SIMPLEX, 0.7, 1, &baseline);
-    	cv::Point textOrg((frame.cols - textSize.width) / 2, frame.rows - 10);
+    	drawInfoText(frame, info, framesRead);
 
-    	// Altera a escala para 0.7 para negrito e a cor para azul (BGR: 255, 0, 0)
-    	putText(frame, infoText, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 0, 0), 2);
+    	// Escreve o frame processado no vídeo de saída
+    	writer.write(frame);
 
         // Exibe o frame processado
         imshow("VC - TP", frame);
@@ -318,7 +333,7 @@ void processVideo(cv::VideoCapture& cap) {
 
     // Imprime as etiquetas e as cores encontradas
     for (const auto& labelCor : labelsCores) {
-        std::cout << "Label " << labelCor.label << " found colors: ";
+        std::cout << "LABEL #" << labelCor.label << " colors: ";
         for (const auto& cor : labelCor.cores_encontradas) {
             std::cout << cor.second << " ";
         }
