@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <cmath>
+#include <set>
 
 extern "C" {
 #include "../include/vc.h"
@@ -205,9 +206,12 @@ void processVideo(cv::VideoCapture& cap) {
     std::string str;
     std::vector<OVC> blob_list;
     std::vector<LabelCor> labelsCores;
+    std::set<std::string> resistenciasUnicas;
+    std::map<std::string, int> resistenciaMap; // Mapear resistência para número
     cv::VideoWriter writer(outputPath, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), info.frameRate, cv::Size(info.width, info.height));
     cv::Mat frame, frameRGB;
     int framesRead = 0;
+    int resistenciaCount = 1;
 
     if (!writer.isOpened()) {
         std::cerr << "Erro ao abrir o ficheiro de saída de vídeo." << std::endl;
@@ -217,7 +221,7 @@ void processVideo(cv::VideoCapture& cap) {
     while (cap.read(frame)) {
         if (frame.empty()) break;
 
-    	framesRead++;
+        framesRead++;
         info.currentFrame = static_cast<int>(cap.get(cv::CAP_PROP_POS_FRAMES));
 
         cvtColor(frame, frameRGB, cv::COLOR_BGR2RGB); // Frame BGR --> RGB
@@ -307,8 +311,24 @@ void processVideo(cv::VideoCapture& cap) {
                     std::string valorResistencia = calcularValorResistencia(labelCor.cores_encontradas);
 
                     labelsCores.push_back(labelCor);
-                    // desenha a bounding box
-                    drawBoundingBoxAndLabel(frame, blob, labelCor.cores_encontradas, valorResistencia);
+
+                    // Verifica se a resistência já foi adicionada
+                    if (resistenciasUnicas.find(valorResistencia) == resistenciasUnicas.end()) {
+                        // Adiciona a resistência ao conjunto de resistências únicas
+                        resistenciasUnicas.insert(valorResistencia);
+
+                        // Mapeia a resistência para um número
+                        resistenciaMap[valorResistencia] = resistenciaCount;
+
+                        // Desenha a bounding box com o número da resistência
+                        drawBoundingBoxAndLabel(frame, blob, labelCor.cores_encontradas, "#" + std::to_string(resistenciaCount) + " --> " + valorResistencia);
+
+                        // Incrementa o contador de resistências
+                        resistenciaCount++;
+                    } else {
+                        // Desenha a bounding box usando o número já mapeado
+                        drawBoundingBoxAndLabel(frame, blob, labelCor.cores_encontradas, "#" + std::to_string(resistenciaMap[valorResistencia]) + " --> " + valorResistencia);
+                    }
                 }
 
                 vc_image_free(cropImg);
@@ -316,28 +336,24 @@ void processVideo(cv::VideoCapture& cap) {
             }
         }
 
-    	// Desenhar o texto da informação no centro ao fundo do vídeo
-    	drawInfoText(frame, info, framesRead);
+        // Desenhar o texto da informação no centro ao fundo do vídeo
+        drawInfoText(frame, info, framesRead);
 
-    	// Escreve o frame processado no vídeo de saída
-    	writer.write(frame);
+        // Escreve o frame processado no vídeo de saída
+        writer.write(frame);
 
         // Exibe o frame processado
         imshow("VC - TP", frame);
         if (cv::waitKey(10) == 'q') break; // ajuste velocidade do vídeo
-
     }
 
     cv::destroyWindow("VC - TP");
     cap.release();
 
-    // Imprime as etiquetas e as cores encontradas
-    for (const auto& labelCor : labelsCores) {
-        std::cout << "LABEL #" << labelCor.label << " colors: ";
-        for (const auto& cor : labelCor.cores_encontradas) {
-            std::cout << cor.second << " ";
-        }
-        std::cout << std::endl;
+    // Imprime as resistências únicas encontradas
+    int index = 1;
+    for (const auto& resistencia : resistenciasUnicas) {
+        std::cout << "Resistência #" << index++ << ": " << resistencia << std::endl;
     }
 
     // Libertar o VideoWriter
