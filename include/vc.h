@@ -34,14 +34,14 @@ typedef struct {
     int label;					// Etiqueta
 } OVC;
 
-#define COR_NOME_MAX 20 // Tamanho maximo do nome da cor
+#define COLOR_NAME_MAX 20 // Tamanho maximo do nome da cor
 
 typedef struct {
-    char nome[COR_NOME_MAX]; // Nome da cor
-    int hmin, hmax; // Intervalo de matriz
-    int smin, smax; // Intervalo de saturação
-    int vmin, vmax; // Intervalo de valor
-} Cor;
+    char name[COLOR_NAME_MAX]; // Nome da cor
+    int hMin, hMax; // Intervalo de matriz
+    int sMin, sMax; // Intervalo de saturação
+    int vMin, vMax; // Intervalo de valor
+} Color;
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++//
 //                    PROTOTIPOS DE FUNCOES                     //

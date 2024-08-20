@@ -12,7 +12,7 @@ struct VideoInfo {
 };
 
 void displayVideoInfo(const VideoInfo& info);
-VideoInfo getVideoInfo(cv::VideoCapture& cap);
+VideoInfo getVideoInfo(const cv::VideoCapture& cap);
 void processVideo(cv::VideoCapture& cap);
 
 #endif //VIDEO_PROCESSOR_H

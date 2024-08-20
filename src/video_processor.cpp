@@ -4,6 +4,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include "video_processor.h"
+#include "utility.h"
 #include <string>
 #include <vector>
 #include <map>
@@ -14,29 +15,40 @@ extern "C" {
 	#include "vc.h"
 }
 
-// Função para inicializar uma estrutura Cor
-Cor init_cor(const char* nome,
-			 const int hmin,
-			 const int hmax,
-			 const int smin,
-			 const int smax,
-			 const int vmin,
-			 const int vmax)
+/**
+ * @brief Estrutura para armazenar cores em HSV com valores mínimos e máximos
+ * 
+ * @param name nome da cor
+ * @param hMin H minimo
+ * @param hMax H maximo
+ * @param sMin S minimo
+ * @param sMax S maximo
+ * @param vMin V minimo
+ * @param vMax V maximo
+ * @return Color
+ */
+Color init_color(const char* name,
+             const int hMin,
+             const int hMax,
+             const int sMin,
+             const int sMax,
+             const int vMin,
+             const int vMax)
 {
-	Cor cor;
-	strncpy(cor.nome, nome, COR_NOME_MAX - 1);
-	cor.nome[COR_NOME_MAX - 1] = '\0';
-	cor.hmin = hmin;
-	cor.hmax = hmax;
-	cor.smin = smin;
-	cor.smax = smax;
-	cor.vmin = vmin;
-	cor.vmax = vmax;
-	return cor;
+	Color color;
+	strncpy(color.name, name, COLOR_NAME_MAX - 1);
+	color.name[COLOR_NAME_MAX - 1] = '\0';
+	color.hMin = hMin;
+	color.hMax = hMax;
+	color.sMin = sMin;
+	color.sMax = sMax;
+	color.vMin = vMin;
+	color.vMax = vMax;
+	return color;
 }
 
 // Inicialização das cores possíveis nas resistências
-Cor cores[] = {
+Color colors[] = {
 	{"Red",	   0,	 21,	63, 75,  70, 100},
 	{"Red",	   353, 359,	54, 63,  71, 77},
 	{"Red",	   353, 359,	59, 67,  70, 75},
@@ -47,45 +59,52 @@ Cor cores[] = {
 	{"Orange", 7,	 14,	67, 72,  85, 95},
 };
 
-// Número de cores definidas
-constexpr int num_cores = sizeof(cores) / sizeof(Cor);
-
 // Estrutura para armazenar etiquetas de cor e posições
-struct LabelCor {
+struct LabelColor {
 	int label{};
-	std::vector<std::pair<int, std::string>> cores_encontradas; // Armazena posição x e cor
+	std::vector<std::pair<int, std::string>> foundColors; // Armazena posição x e cor
 };
 
-// Função para calcular o valor da resistência com base nas cores encontradas
-std::string calcularValorResistencia(const std::vector<std::pair<int, std::string>>& cores_encontradas) {
-	if (cores_encontradas.size() < 3) {
+/**
+ * @brief Funcao para calcular o valor da resistencia com base nas cores encontradas
+ *
+ * @param foundColors vetor de cores encontradas
+ * @return std::string
+ */
+std::string calculateResistorValue(const std::vector<std::pair<int, std::string>>& foundColors) {
+	// Verifica se foram encontradas pelo menos 3 cores
+	if (foundColors.size() < 3) {
 		return "Resistencia invalida";
 	}
 
 	// Mapeamento das cores para valores numéricos
-	std::map<std::string, int> corParaValor = {
+	std::map<std::string, int> colorToValue = {
 		{"Black", 0}, {"Brown", 1}, {"Red", 2} ,{"Orange", 3}, {"Yellow", 4},
 		{"Green", 5}, {"Blue", 6}, {"Purple", 7}, {"Gray", 8}, {"White", 9}
 	};
 
 	//calcula o valor das resistencias tendo em consideração as 3 primeiras cores > x0
-	const int valor = corParaValor[cores_encontradas[0].second] * 10 + corParaValor[cores_encontradas[1].second];
-	const int multiplicador = pow(10, corParaValor[cores_encontradas[2].second]);
-	constexpr int tolerancia = 5; // Tolerância de 5% - Valor fixado no enunciado
-
-	const int resistencia = valor * multiplicador;
-
-
-	return std::to_string(resistencia) + " Ohm  ~" + std::to_string(tolerancia) + "%";
+	const int value = colorToValue[foundColors[0].second] * 10 + colorToValue[foundColors[1].second];
+	const int multiplier = static_cast<int>(std::pow(10, colorToValue[foundColors[2].second]));
+	const int resistor = value * multiplier;
+	
+	return std::to_string(resistor) + " Ohm  ~" + std::to_string(RESISTOR_TOLERANCE) + "%";
 }
 
-// Função para desenhar caixa de delimitação, rótulos e centro de massa
-void drawBoundingBoxAndLabel(cv::Mat& image, const OVC& blob, const std::vector<std::pair<int, std::string>>& labels, const std::string& valorResistencia) {
+/**
+ * @brief Função para desenhar a caixa de delimitação, rótulos e centro de massa
+ *
+ * @param image imagem
+ * @param blob blob
+ * @param labels vetor de etiquetas
+ * @param resistorValue valor da resistência
+ */
+void drawBoundingBoxLabelCentroid(cv::Mat& image, const OVC& blob, const std::vector<std::pair<int, std::string>>& labels, const std::string& resistorValue) {
 	// Desenha retângulo ao redor do blob
 	rectangle(image, cv::Point(blob.x, blob.y), cv::Point(blob.x + blob.width, blob.y + blob.height), cv::Scalar(0, 255, 0), 2);
 
 	// Adiciona texto do valor da resistência
-	putText(image, valorResistencia, cv::Point(blob.x, blob.y + blob.height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
+	putText(image, resistorValue, cv::Point(blob.x, blob.y + blob.height + 30), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
 
 	// Desenha o centro de massa
 	circle(image, cv::Point(blob.xc, blob.yc), 3, cv::Scalar(255, 255, 255), -1);
@@ -93,49 +112,63 @@ void drawBoundingBoxAndLabel(cv::Mat& image, const OVC& blob, const std::vector<
 
 
 // Função para identificar blobs e cores
-void identificarBlobsCores(IVC* hsvCropImg, std::vector<std::pair<int, std::string>>& cores_encontradas) {
-	const int total_pixels = hsvCropImg->width * hsvCropImg->height;
-	constexpr int count_Blue = 0;
+/**
+ * @brief Função para identificar as cores presentes nas blobs
+ *
+ * @param hsvCropImg imagem recortada em HSV
+ * @param foundColors vetor de cores encontradas
+ */
+void identifyBlobsColors(IVC* hsvCropImg, std::vector<std::pair<int, std::string>>& foundColors) {
+	const int totalPixels = hsvCropImg->width * hsvCropImg->height;
+	constexpr int blueCounter = 0;
 
-	for (auto & core : cores) {
-		// Cria nova imagem para segmentação
+	for (auto & core : colors) {
+		// Cria uma nova imagem para segmentar
 		IVC* segmentedCropImg = vc_image_new(hsvCropImg->width, hsvCropImg->height, 3, hsvCropImg->levels);
 
-		// Realiza segmentação HSV
-		vc_hsv_segmentation(hsvCropImg, segmentedCropImg, core.hmin, core.hmax, core.smin, core.smax, core.vmin, core.vmax);
+		// Segmentação HSV
+		vc_hsv_segmentation(hsvCropImg, segmentedCropImg, core.hMin, core.hMax, core.sMin, core.sMax, core.vMin, core.vMax);
 
-		// Salva imagem segmentada
+		// Guarda a imagem segmentada
 		char filename[50];
 		vc_write_image(filename, segmentedCropImg);
 
-		int cor_presente = 0;
+		bool isColorPresent = false;
+		
 		// Verifica se a cor está presente na imagem segmentada
 		for (int y = 0; y < segmentedCropImg->height; y++) {
 			for (int x = 0; x < segmentedCropImg->width; x++) {
 				const int pos = y * segmentedCropImg->bytesperline + x * segmentedCropImg->channels;
 				if (segmentedCropImg->data[pos] == 255) {
-					cores_encontradas.emplace_back( x, core.nome );
-					cor_presente = 1;
+					foundColors.emplace_back( x, core.name );
+					isColorPresent = true;
 					break;
 				}
 			}
-			if (cor_presente) break;
+			if (isColorPresent) break;
 		}
 
 		vc_image_free(segmentedCropImg);
 	}
 
-	if (static_cast<float>(count_Blue) / total_pixels > 0.5) {
-		cores_encontradas.clear(); // Se mais de 50% dos pixels são azuis, descarta essa blob
+	// Se +50% dos pixels são azuis, ignora o blob
+	if (static_cast<float>(blueCounter) / static_cast<float>(totalPixels) > 0.5) {
+		foundColors.clear();
 	}
 
-	// Ordena as cores encontradas pela posição x
-	if (!cores_encontradas.empty()) {
-		std::sort(cores_encontradas.begin(), cores_encontradas.end());
+	// Ordena as cores
+	if (!foundColors.empty()) {
+		std::sort(foundColors.begin(), foundColors.end());
 	}
 }
 
-VideoInfo getVideoInfo(cv::VideoCapture& cap) {
+/**
+ * @brief Função para obter informações do vídeo
+ *
+ * @param cap captura de vídeo
+ * @return VideoInfo
+ */
+VideoInfo getVideoInfo(const cv::VideoCapture& cap) {
     VideoInfo info{};
     info.totalFrames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
     info.frameRate = std::round(cap.get(cv::CAP_PROP_FPS));
@@ -145,6 +178,13 @@ VideoInfo getVideoInfo(cv::VideoCapture& cap) {
     return info;
 }
 
+/**
+ * @brief Função para desenhar o texto de informação no vídeo
+ *
+ * @param frame frame
+ * @param info informação do vídeo
+ * @param framesRead frames lidos
+ */
 void drawInfoText(cv::Mat& frame, const VideoInfo& info, int framesRead) {
     // Definir cores
     cv::Scalar colorTitle(0, 0, 198);            // TÍTULOS: Vermelho Escuro
@@ -192,26 +232,35 @@ void drawInfoText(cv::Mat& frame, const VideoInfo& info, int framesRead) {
     putText(frame, textResolutionValue, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorValue, 1);
 }
 
+/**
+ * @brief Função para exibir informações do vídeo
+ *
+ * @param info informação do vídeo
+ */
 void displayVideoInfo(const VideoInfo& info) {
-	std::cout << "+--------------------------------------------" << std::endl;
-    std::cout << "| TOTAL FRAMES: " << info.totalFrames << std::endl;
-    std::cout << "| FRAME RATE: " << info.frameRate << " FPS" << std::endl;
+	std::cout << "+--------------------------------------------"	  << std::endl;
+    std::cout << "| TOTAL FRAMES: " << info.totalFrames				  << std::endl;
+    std::cout << "| FRAME RATE: " << info.frameRate << " FPS"		  << std::endl;
     std::cout << "| RESOLUTION: " << info.width << "x" << info.height << std::endl;
-    std::cout << "+--------------------------------------------" << std::endl;
+    std::cout << "+--------------------------------------------"	  << std::endl;
 }
 
+/**
+ * @brief Função para processar o vídeo
+ *
+ * @param cap captura de vídeo
+ */
 void processVideo(cv::VideoCapture& cap) {
     VideoInfo info = getVideoInfo(cap);
     std::string outputPath = "../data/samples/output_video.mp4";
     std::string str;
-    std::vector<OVC> blob_list;
-    std::vector<LabelCor> labelsCores;
-    std::set<std::string> resistenciasUnicas;
-    std::map<std::string, int> resistenciaMap; // Mapear resistência para número
+    std::vector<LabelColor> labelsColors;
+    std::set<std::string> uniqueResistors;
+    std::map<std::string, int> resistorMap; // Mapear resistência para número
     cv::VideoWriter writer(outputPath, cv::VideoWriter::fourcc('a', 'v', 'c', '1'), info.frameRate, cv::Size(info.width, info.height));
     cv::Mat frame, frameRGB;
     int framesRead = 0;
-    int resistenciaCount = 1;
+    int resistorCounter = 1;
 
     if (!writer.isOpened()) {
         std::cerr << "Erro ao abrir o ficheiro de saída de vídeo." << std::endl;
@@ -299,38 +348,36 @@ void processVideo(cv::VideoCapture& cap) {
                 IVC* hsvCropImg = vc_image_new(cropImg->width, cropImg->height, cropImg->channels, cropImg->levels);
                 vc_rgb_to_hsv(cropImg, hsvCropImg);
 
-                // Inicializa uma estrutura LabelCor para armazenar as cores encontradas
-                LabelCor labelCor;
-                labelCor.label = blob.label;
+                // Inicializa uma estrutura LabelColor para armazenar as cores encontradas
+                LabelColor labelColor;
+                labelColor.label = blob.label;
 
                 // Identifica as cores no recorte HSV
-                identificarBlobsCores(hsvCropImg, labelCor.cores_encontradas);
+                identifyBlobsColors(hsvCropImg, labelColor.foundColors);
 
                 // Se cores forem encontradas, calcula o valor da resistência e desenha os rótulos
-                if (!labelCor.cores_encontradas.empty()) {
-                    std::string valorResistencia = calcularValorResistencia(labelCor.cores_encontradas);
+                if (!labelColor.foundColors.empty()) {
+                    std::string resistorValue = calculateResistorValue(labelColor.foundColors);
 
-                    labelsCores.push_back(labelCor);
+                    labelsColors.push_back(labelColor);
 
                     // Verifica se a resistência já foi adicionada
-                    if (resistenciasUnicas.find(valorResistencia) == resistenciasUnicas.end()) {
+                    if (uniqueResistors.find(resistorValue) == uniqueResistors.end()) {
                         // Adiciona a resistência ao conjunto de resistências únicas
-                        resistenciasUnicas.insert(valorResistencia);
+                        uniqueResistors.insert(resistorValue);
 
                         // Mapeia a resistência para um número
-                        resistenciaMap[valorResistencia] = resistenciaCount;
+                        resistorMap[resistorValue] = resistorCounter;
 
                         // Desenha a bounding box com o número da resistência
-                        drawBoundingBoxAndLabel(frame, blob, labelCor.cores_encontradas, "#" + std::to_string(resistenciaCount) + " --> " + valorResistencia);
+                        drawBoundingBoxLabelCentroid(frame, blob, labelColor.foundColors, "[" + std::to_string(resistorCounter) + "] " + resistorValue);
 
-                        // Incrementa o contador de resistências
-                        resistenciaCount++;
+                        resistorCounter++;
                     } else {
                         // Desenha a bounding box usando o número já mapeado
-                        drawBoundingBoxAndLabel(frame, blob, labelCor.cores_encontradas, "#" + std::to_string(resistenciaMap[valorResistencia]) + " --> " + valorResistencia);
+                        drawBoundingBoxLabelCentroid(frame, blob, labelColor.foundColors, "[" + std::to_string(resistorMap[resistorValue]) + "] " + resistorValue);
                     }
                 }
-
                 vc_image_free(cropImg);
                 vc_image_free(hsvCropImg);
             }
@@ -343,17 +390,17 @@ void processVideo(cv::VideoCapture& cap) {
         writer.write(frame);
 
         // Exibe o frame processado
-        imshow("VC - TP", frame);
+        imshow("VC - Resistors", frame);
         if (cv::waitKey(10) == 'q') break; // ajuste velocidade do vídeo
     }
 
-    cv::destroyWindow("VC - TP");
+    cv::destroyWindow("VC - Resistors");
     cap.release();
 
-    // Imprime as resistências únicas encontradas
+    // Imprime as resistências encontradas
     int index = 1;
-    for (const auto& resistencia : resistenciasUnicas) {
-        std::cout << "| Resistência #" << index++ << ": " << resistencia << std::endl;
+    for (const auto& resistor : uniqueResistors) {
+        std::cout << "| Resistência #" << index++ << ": " << resistor << std::endl;
     }
 	std::cout << "+--------------------------------------------" << std::endl;
 
