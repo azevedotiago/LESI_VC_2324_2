@@ -11,7 +11,7 @@
 #include <set>
 
 extern "C" {
-#include "../include/vc.h"
+	#include "vc.h"
 }
 
 // Função para inicializar uma estrutura Cor
@@ -193,11 +193,11 @@ void drawInfoText(cv::Mat& frame, const VideoInfo& info, int framesRead) {
 }
 
 void displayVideoInfo(const VideoInfo& info) {
-	std::cout << "+----------------------" << std::endl;
+	std::cout << "+--------------------------------------------" << std::endl;
     std::cout << "| TOTAL FRAMES: " << info.totalFrames << std::endl;
     std::cout << "| FRAME RATE: " << info.frameRate << " FPS" << std::endl;
     std::cout << "| RESOLUTION: " << info.width << "x" << info.height << std::endl;
-    std::cout << "+----------------------" << std::endl;
+    std::cout << "+--------------------------------------------" << std::endl;
 }
 
 void processVideo(cv::VideoCapture& cap) {
@@ -353,8 +353,10 @@ void processVideo(cv::VideoCapture& cap) {
     // Imprime as resistências únicas encontradas
     int index = 1;
     for (const auto& resistencia : resistenciasUnicas) {
-        std::cout << "Resistência #" << index++ << ": " << resistencia << std::endl;
+        std::cout << "| Resistência #" << index++ << ": " << resistencia << std::endl;
     }
+	std::cout << "+--------------------------------------------" << std::endl;
+
 
     // Libertar o VideoWriter
     writer.release();
