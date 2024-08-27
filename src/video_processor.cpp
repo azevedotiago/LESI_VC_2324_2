@@ -57,6 +57,10 @@ Color colors[] = {
 	{"Black",  0,	 80,	0,	 100, 0,  30},
 	{"Brown",  7,	 27,	26, 51,  31, 47},
 	{"Orange", 7,	 14,	67, 72,  85, 95},
+// 	{"Yellow", 50,	 60,	40, 50,  80, 100},
+// 	{"Purple", 270, 280,	40, 50,  50, 70},
+// 	{"Gray",   0,	 360,	0,	 0,   50, 60},
+// 	{"White",  0,	 360,	0,	 0,   90, 100}
 };
 
 // Estrutura para armazenar etiquetas de cor e posições
@@ -243,6 +247,13 @@ void displayVideoInfo(const VideoInfo& info) {
     std::cout << "| FRAME RATE: " << info.frameRate << " FPS"		  << std::endl;
     std::cout << "| RESOLUTION: " << info.width << "x" << info.height << std::endl;
     std::cout << "+--------------------------------------------"	  << std::endl;
+	std::cout << "| RESISTENCIAS ESPERADAS:"						  << std::endl;
+	std::cout << "| --> 1 de 5600 Ohm"								  << std::endl;
+	std::cout << "| --> 1 de 220 Ohm"								  << std::endl;
+	std::cout << "| --> 2 de 1000 Ohm"								  << std::endl;
+	std::cout << "| --> 1 de 2200 Ohm"								  << std::endl;
+	std::cout << "| --> 1 de 10000 Ohm"								  << std::endl;
+	std::cout << "+--------------------------------------------"	  << std::endl;
 }
 
 /**
@@ -261,6 +272,13 @@ void processVideo(cv::VideoCapture& cap) {
     cv::Mat frame, frameRGB;
     int framesRead = 0;
     int resistorCounter = 1;
+	const std::vector<std::pair<int, int>> expectedResistorValues = {
+		{220, 1},
+		{1000, 2},
+		{2200, 1},
+		{5600, 1},
+		{10000, 1}
+	};
 
     if (!writer.isOpened()) {
         std::cerr << "Erro ao abrir o ficheiro de saída de vídeo." << std::endl;
@@ -399,9 +417,21 @@ void processVideo(cv::VideoCapture& cap) {
 
     // Imprime as resistências encontradas
     int index = 1;
+	std::cout << "| RESISTÊNCIAS DETETADAS:" << std::endl;
     for (const auto& resistor : uniqueResistors) {
-        std::cout << "| Resistência #" << index++ << ": " << resistor << std::endl;
+        std::cout << "| --> #" << index++ << ": " << resistor << std::endl;
     }
+	std::cout << "+--------------------------------------------" << std::endl;
+
+	// Imprime as etiquetas e as cores encontradas
+	std::cout << "| LABELS ANALISADAS:" << std::endl;
+	for (const auto& labelColor : labelsColors) {
+		std::cout << "| --> #" << labelColor.label << ": ";
+		for (const auto& color : labelColor.foundColors) {
+			std::cout << color.second << " ";
+		}
+		std::cout << std::endl;
+	}
 	std::cout << "+--------------------------------------------" << std::endl;
 
 
