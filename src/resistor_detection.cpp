@@ -3,9 +3,6 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
-extern "C" {
-#include "vc.h"
-}
 
 /**
  * @brief Funcao para calcular o valor da resistencia com base nas cores encontradas
