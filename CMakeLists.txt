@@ -9,10 +9,8 @@ include_directories(${OpenCV_INCLUDE_DIRS} include)
 
 add_executable(main src/main.cpp src/vc.c
         src/video_processor.cpp
-        src/image_processing.cpp
         src/utility.cpp
         include/video_processor.h
-        include/image_processing.h
         include/utility.h)
 
 target_link_libraries(main ${OpenCV_LIBS})

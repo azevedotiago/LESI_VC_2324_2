@@ -17,7 +17,7 @@ extern "C" {
 
 /**
  * @brief Estrutura para armazenar cores em HSV com valores mínimos e máximos
- * 
+ *
  * @param name nome da cor
  * @param hMin H minimo
  * @param hMax H maximo
@@ -63,6 +63,17 @@ Color colors[] = {
 // 	{"White",  0,	 360,	0,	 0,   90, 100}
 };
 
+// Color colors[] = {
+// 	{"Red",	   12,	 13,	60, 63,  70, 80},
+// 	// {"Red",	   353, 359,	54, 63,  71, 77},
+// 	// {"Red",	   353, 359,	59, 67,  70, 75},
+// 	{"Green",  102, 108,	29, 35,  37, 42},
+// 	{"Blue",   192, 200,	26, 33,  34, 40},
+// 	{"Black",  0,	 80,	0,	 10, 0,  30},
+// 	{"Brown",  31,	 33,	30, 47,  36, 46},
+// 	{"Orange", 7,	 14,	67, 72,  85, 95},
+// };
+
 // Estrutura para armazenar etiquetas de cor e posições
 struct LabelColor {
 	int label{};
@@ -92,7 +103,7 @@ std::string calculateResistorValue(const std::vector<std::pair<int, std::string>
 	const int multiplier = static_cast<int>(std::pow(10, colorToValue[foundColors[2].second]));
 	const int resistor = value * multiplier;
 	
-	return std::to_string(resistor) + " Ohm  ~" + std::to_string(RESISTOR_TOLERANCE) + "%";
+	return std::to_string(resistor) + " Ohm  +-" + std::to_string(RESISTOR_TOLERANCE) + "%";
 }
 
 /**
@@ -248,11 +259,12 @@ void displayVideoInfo(const VideoInfo& info) {
     std::cout << "| RESOLUTION: " << info.width << "x" << info.height << std::endl;
     std::cout << "+--------------------------------------------"	  << std::endl;
 	std::cout << "| RESISTENCIAS ESPERADAS:"						  << std::endl;
-	std::cout << "| --> 1 de 5600 Ohm"								  << std::endl;
-	std::cout << "| --> 1 de 220 Ohm"								  << std::endl;
-	std::cout << "| --> 2 de 1000 Ohm"								  << std::endl;
-	std::cout << "| --> 1 de 2200 Ohm"								  << std::endl;
-	std::cout << "| --> 1 de 10000 Ohm"								  << std::endl;
+	std::cout << "| --> 1º: 5600 Ohm  +-5%"							  << std::endl;
+	std::cout << "| --> 2º: 220 Ohm  +-5%"							  << std::endl;
+	std::cout << "| --> 3º: 1000 Ohm  +-5%"							  << std::endl;
+	std::cout << "| --> 4º: 2200 Ohm  +-5%"							  << std::endl;
+	std::cout << "| --> 5º: 10000 Ohm  +-5%"						  << std::endl;
+	std::cout << "| --> 6º: 1000 Ohm  +-5%"							  << std::endl;
 	std::cout << "+--------------------------------------------"	  << std::endl;
 }
 
@@ -263,7 +275,7 @@ void displayVideoInfo(const VideoInfo& info) {
  */
 void processVideo(cv::VideoCapture& cap) {
     VideoInfo info = getVideoInfo(cap);
-    std::string outputPath = "../data/samples/output_video.mp4";
+    std::string outputPath = "../data/output_video.mp4";
     std::string str;
     std::vector<LabelColor> labelsColors;
     std::set<std::string> uniqueResistors;
@@ -409,7 +421,7 @@ void processVideo(cv::VideoCapture& cap) {
 
         // Exibe o frame processado
         imshow("VC - Resistors", frame);
-        if (cv::waitKey(10) == 'q') break; // ajuste velocidade do vídeo
+        if (cv::waitKey(10) == 'q') break;
     }
 
     cv::destroyWindow("VC - Resistors");
@@ -419,7 +431,7 @@ void processVideo(cv::VideoCapture& cap) {
     int index = 1;
 	std::cout << "| RESISTÊNCIAS DETETADAS:" << std::endl;
     for (const auto& resistor : uniqueResistors) {
-        std::cout << "| --> #" << index++ << ": " << resistor << std::endl;
+        std::cout << "| --> " << index++ << "º: " << resistor << std::endl;
     }
 	std::cout << "+--------------------------------------------" << std::endl;
 
