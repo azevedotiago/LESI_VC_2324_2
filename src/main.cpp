@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
 #include "video_processor.h"
+#include "utility.h"
 #include <string>
 
 int main(int argc, char** argv) {

@@ -3,16 +3,6 @@
 
 #include <opencv2/opencv.hpp>
 
-struct VideoInfo {
-    int totalFrames;
-    double frameRate;
-    int width;
-    int height;
-    int currentFrame;
-};
-
-void displayVideoInfo(const VideoInfo& info);
-VideoInfo getVideoInfo(const cv::VideoCapture& cap);
 void processVideo(cv::VideoCapture& cap);
 
 #endif //VIDEO_PROCESSOR_H

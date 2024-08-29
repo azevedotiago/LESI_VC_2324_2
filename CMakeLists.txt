@@ -10,7 +10,9 @@ include_directories(${OpenCV_INCLUDE_DIRS} include)
 add_executable(main src/main.cpp src/vc.c
         src/video_processor.cpp
         src/utility.cpp
+        src/resistor_detection.cpp
         include/video_processor.h
+        include/resistor_detection.h
         include/utility.h)
 
 target_link_libraries(main ${OpenCV_LIBS})

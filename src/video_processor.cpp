@@ -4,11 +4,11 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include "video_processor.h"
+#include "resistor_detection.h"
 #include "utility.h"
 #include <string>
 #include <vector>
 #include <map>
-#include <cmath>
 #include <set>
 
 extern "C" {
@@ -63,48 +63,12 @@ Color colors[] = {
 // 	{"White",  0,	 360,	0,	 0,   90, 100}
 };
 
-// Color colors[] = {
-// 	{"Red",	   12,	 13,	60, 63,  70, 80},
-// 	// {"Red",	   353, 359,	54, 63,  71, 77},
-// 	// {"Red",	   353, 359,	59, 67,  70, 75},
-// 	{"Green",  102, 108,	29, 35,  37, 42},
-// 	{"Blue",   192, 200,	26, 33,  34, 40},
-// 	{"Black",  0,	 80,	0,	 10, 0,  30},
-// 	{"Brown",  31,	 33,	30, 47,  36, 46},
-// 	{"Orange", 7,	 14,	67, 72,  85, 95},
-// };
-
 // Estrutura para armazenar etiquetas de cor e posições
 struct LabelColor {
 	int label{};
 	std::vector<std::pair<int, std::string>> foundColors; // Armazena posição x e cor
 };
 
-/**
- * @brief Funcao para calcular o valor da resistencia com base nas cores encontradas
- *
- * @param foundColors vetor de cores encontradas
- * @return std::string
- */
-std::string calculateResistorValue(const std::vector<std::pair<int, std::string>>& foundColors) {
-	// Verifica se foram encontradas pelo menos 3 cores
-	if (foundColors.size() < 3) {
-		return "Resistencia invalida";
-	}
-
-	// Mapeamento das cores para valores numéricos
-	std::map<std::string, int> colorToValue = {
-		{"Black", 0}, {"Brown", 1}, {"Red", 2} ,{"Orange", 3}, {"Yellow", 4},
-		{"Green", 5}, {"Blue", 6}, {"Purple", 7}, {"Gray", 8}, {"White", 9}
-	};
-
-	//calcula o valor das resistencias tendo em consideração as 3 primeiras cores > x0
-	const int value = colorToValue[foundColors[0].second] * 10 + colorToValue[foundColors[1].second];
-	const int multiplier = static_cast<int>(std::pow(10, colorToValue[foundColors[2].second]));
-	const int resistor = value * multiplier;
-	
-	return std::to_string(resistor) + " Ohm  +-" + std::to_string(RESISTOR_TOLERANCE) + "%";
-}
 
 /**
  * @brief Função para desenhar a caixa de delimitação, rótulos e centro de massa
@@ -177,21 +141,21 @@ void identifyBlobsColors(IVC* hsvCropImg, std::vector<std::pair<int, std::string
 	}
 }
 
-/**
- * @brief Função para obter informações do vídeo
- *
- * @param cap captura de vídeo
- * @return VideoInfo
- */
-VideoInfo getVideoInfo(const cv::VideoCapture& cap) {
-    VideoInfo info{};
-    info.totalFrames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
-    info.frameRate = std::round(cap.get(cv::CAP_PROP_FPS));
-    info.width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
-    info.height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
-	info.currentFrame = static_cast<int>(cap.get(cv::CAP_PROP_POS_FRAMES));
-    return info;
-}
+// /**
+//  * @brief Função para obter informações do vídeo
+//  *
+//  * @param cap captura de vídeo
+//  * @return VideoInfo
+//  */
+// VideoInfo getVideoInfo(const cv::VideoCapture& cap) {
+//     VideoInfo info{};
+//     info.totalFrames = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_COUNT));
+//     info.frameRate = std::round(cap.get(cv::CAP_PROP_FPS));
+//     info.width = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_WIDTH));
+//     info.height = static_cast<int>(cap.get(cv::CAP_PROP_FRAME_HEIGHT));
+// 	info.currentFrame = static_cast<int>(cap.get(cv::CAP_PROP_POS_FRAMES));
+//     return info;
+// }
 
 /**
  * @brief Função para desenhar o texto de informação no vídeo
@@ -245,27 +209,6 @@ void drawInfoText(cv::Mat& frame, const VideoInfo& info, int framesRead) {
     textOrg.x += getTextSize(textResolution, cv::FONT_HERSHEY_SIMPLEX, 0.7, 2, &baseLine).width;
 
     putText(frame, textResolutionValue, textOrg, cv::FONT_HERSHEY_SIMPLEX, 0.7, colorValue, 1);
-}
-
-/**
- * @brief Função para exibir informações do vídeo
- *
- * @param info informação do vídeo
- */
-void displayVideoInfo(const VideoInfo& info) {
-	std::cout << "+--------------------------------------------"	  << std::endl;
-    std::cout << "| TOTAL FRAMES: " << info.totalFrames				  << std::endl;
-    std::cout << "| FRAME RATE: " << info.frameRate << " FPS"		  << std::endl;
-    std::cout << "| RESOLUTION: " << info.width << "x" << info.height << std::endl;
-    std::cout << "+--------------------------------------------"	  << std::endl;
-	std::cout << "| RESISTENCIAS ESPERADAS:"						  << std::endl;
-	std::cout << "| --> 1º: 5600 Ohm  +-5%"							  << std::endl;
-	std::cout << "| --> 2º: 220 Ohm  +-5%"							  << std::endl;
-	std::cout << "| --> 3º: 1000 Ohm  +-5%"							  << std::endl;
-	std::cout << "| --> 4º: 2200 Ohm  +-5%"							  << std::endl;
-	std::cout << "| --> 5º: 10000 Ohm  +-5%"						  << std::endl;
-	std::cout << "| --> 6º: 1000 Ohm  +-5%"							  << std::endl;
-	std::cout << "+--------------------------------------------"	  << std::endl;
 }
 
 /**
