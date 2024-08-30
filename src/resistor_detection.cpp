@@ -1,6 +1,5 @@
 #include "resistor_detection.h"
 #include "utility.h"
-#include <iostream>
 #include <opencv2/opencv.hpp>
 
 
@@ -18,11 +17,20 @@ std::string calculateResistorValue(const std::vector<std::pair<int, std::string>
 
     // Mapeamento das cores para valores numéricos
     std::map<std::string, int> colorToValue = {
-        {"Black", 0}, {"Brown", 1}, {"Red", 2} ,{"Orange", 3}, {"Yellow", 4},
-        {"Green", 5}, {"Blue", 6}, {"Purple", 7}, {"Gray", 8}, {"White", 9}
+        {"Black",   0},
+        {"Brown",   1},
+        {"Red",     2},
+        {"Orange",  3},
+        {"Yellow",  4},
+        {"Green",   5},
+        {"Blue",    6},
+        {"Purple",  7},
+        {"Gray",    8},
+        {"White",   9},
     };
 
-    //calcula o valor das resistencias tendo em consideração as 3 primeiras cores > x0
+    // Calcula o valor da resistência usando as três primeiras cores
+    // As duas primeiras cores representam os dígitos significativos e a terceira cor representa o multiplicador
     const int value = colorToValue[foundColors[0].second] * 10 + colorToValue[foundColors[1].second];
     const int multiplier = static_cast<int>(std::pow(10, colorToValue[foundColors[2].second]));
     const int resistor = value * multiplier;

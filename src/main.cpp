@@ -1,12 +1,7 @@
-#include <iostream>
-#include <opencv2/opencv.hpp>
-#include <opencv2/videoio.hpp>
 #include "video_processor.h"
 #include "utility.h"
-#include <string>
 
-int main(int argc, char** argv) {
-	const std::string videoPath = "../data/video_resistors.mp4";
+int main() {
 	cv::VideoCapture cap(videoPath);
 
 	// Verificar se o vídeo foi aberto corretamente
