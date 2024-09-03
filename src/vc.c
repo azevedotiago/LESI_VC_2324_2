@@ -753,7 +753,6 @@ int countWhitePixels(const IVC* image) {
     }
     return count;
 }
-    
 
 
 /**
@@ -899,6 +898,7 @@ int vc_arrows_distinction(const IVC* image, const int xbb, const int ybb, int wi
     if (countLeft > countRight) return 1;
     return 2;
 }
+
 
 /**
  * @brief Get token
@@ -1297,6 +1297,7 @@ int vc_rgb_get_green_gray(const IVC* srcdst)
     return 1;
 }
 
+
 /**
  * @brief Converte imagem para grayscale
  *
@@ -1545,90 +1546,99 @@ int vc_binary_dilate(const IVC* src, const IVC* dst, const int kernel)
 }
 
 
-// TODO: FIQUEI AQUI
-int vc_binary_open(IVC* src, IVC* dst, int kernel)
+/**
+ * @brief Abertura binaria
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @param kernel Tamanho do kernel
+ * @return int
+ */
+int vc_binary_open(const IVC* src, const IVC* dst, const int kernel)
 {
     int ret = 1;
 
     IVC* aux = vc_image_new(src->width, src->height, src->channels, src->levels);
-
     ret &= vc_binary_erode(src, aux, kernel);
     ret &= vc_binary_dilate(aux, dst, kernel);
-
     vc_image_free(aux);
 
     return ret;
 }
 
-int vc_binary_close(IVC* src, IVC* dst, int kernel)
+
+/**
+ * @brief Fechamento binario
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @param kernel Tamanho do kernel
+ * @return int
+ */
+int vc_binary_close(const IVC* src, const IVC* dst, const int kernel)
 {
     int ret = 1;
 
     IVC* aux = vc_image_new(src->width, src->height, src->channels, src->levels);
-
     ret &= vc_binary_dilate(src, aux, kernel);
     ret &= vc_binary_erode(aux, dst, kernel);
-
     vc_image_free(aux);
 
     return ret;
 }
 
-int vc_gray_histogram_show(IVC* src, IVC* dst)
+
+/**
+ * @brief Histograma de uma imagem
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @return int
+ */
+int vc_gray_histogram_show(const IVC* src, const IVC* dst)
 {
-    unsigned char* data = (unsigned char*)src->data;
-    int width = src->width;
-    int height = src->height;
+    const unsigned char* data = (unsigned char*)src->data;
+    const int width = src->width;
+    const int height = src->height;
     int byteperline = src->width * src->channels;
-    int channels = src->channels;
+    const int channels = src->channels;
     int x, y;
     long int pos;
     int contarpixeis[256] = { 0 };
     float pdf[256];
     float conta = 0;
     float max = 0;
-    double temp;
     float cdf[256] = { 0 };
     float equalizacao[256] = { 0 };
 
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
-        return 0;
-    if (channels != 1)
-        return 0;
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL) return 0;
+    if (channels != 1) return 0;
 
-    //numero pixeis repetidos
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
+    // Numero de pixeis repetidos
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             pos = y * byteperline + x * channels;
             contarpixeis[(int)data[pos]]++;
         }
     }
 
-    //calcula pdf
-    for (y = 0; y < 256; y++)
-    {
+    // Calcula PDF
+    for (y = 0; y < 256; y++) {
         pdf[y] = (float)contarpixeis[y] / (float)(width * height);
         conta += pdf[y];
 
-        if (max < pdf[y])
-            max = pdf[y];
+        if (max < pdf[y]) max = pdf[y];
     }
 
-    //calcula grafico cdf
-    for (x = 0; x < 256; x++)
-    {
-        for (y = x; y >= 0; y--)
-        {
+    // Calcula Grafico CDF
+    for (x = 0; x < 256; x++) {
+        for (y = x; y >= 0; y--) {
             cdf[x] += pdf[y];
         }
     }
 
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             pos = y * byteperline + x * channels;
             dst->data[pos] = cdf[data[pos]] * 255;
         }
@@ -1636,58 +1646,56 @@ int vc_gray_histogram_show(IVC* src, IVC* dst)
     return 1;
 }
 
+
+/**
+ * @brief Equalizacao de histograma
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @return int
+ */
 int vc_histograma_equalization(IVC* src, IVC* dst)
 {
-    unsigned char* data = (unsigned char*)src->data;
-    int width = src->width;
-    int height = src->height;
+    const unsigned char* data = src->data;
+    const int width = src->width;
+    const int height = src->height;
     int byteperline = src->width * src->channels;
-    int channels = src->channels;
+    const int channels = src->channels;
     int x, y;
     long int pos;
     int contarpixeis[256] = { 0 };
     float pdf[256];
     float conta = 0;
     float max = 0;
-    double temp;
     float cdf[256] = { 0 };
     float equalizacao[256] = { 0 };
 
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
-        return 0;
-    if (channels != 1)
-        return 0;
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL) return 0;
+    if (channels != 1) return 0;
 
-    //numero pixeis repetidos
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
+    // Numero de pixeis repetidos
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             pos = y * byteperline + x * channels;
             contarpixeis[(int)data[pos]]++;
         }
     }
 
-    //calcula pdf
-    for (y = 0; y < 256; y++)
-    {
+    // Calcula PDF
+    for (y = 0; y < 256; y++) {
         pdf[y] = (float)contarpixeis[y] / (float)(width * height);
         conta += pdf[y];
 
-        if (max < pdf[y])
-            max = pdf[y];
+        if (max < pdf[y]) max = pdf[y];
     }
 
-    //calcula grafico cdf
-    for (int i = 1; i < 256; i++)
-    {
+    // Calcula grafico CDF
+    for (int i = 1; i < 256; i++) {
         cdf[i] = cdf[i - 1] + pdf[i];
     }
 
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             pos = y * byteperline + x * channels;
             dst->data[pos] = cdf[data[pos]] * src->levels;
         }
@@ -1695,137 +1703,123 @@ int vc_histograma_equalization(IVC* src, IVC* dst)
     return 1;
 }
 
-// Detecao de contornos pelos operadores Prewitt
-int vc_gray_edge_prewitt(IVC* src, IVC* dst, float th) // th = [0.001, 1.000]
+
+/**
+ * @brief Detecao de contornos pelos operadores Prewitt
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @param th Threshold [0.001, 1.000]
+ * @return int
+ */
+int vc_gray_edge_prewitt(const IVC* src, const IVC* dst, const float th)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int width = src->width;
-    int height = src->height;
+    unsigned char* datasrc = src->data;
+    unsigned char* datadst = dst->data;
+    const int width = src->width;
+    const int height = src->height;
     int bytesperline = src->bytesperline;
-    int channels = src->channels;
+    const int channels = src->channels;
+    const int size = width * height;
     int x, y;
-    long int posX, posA, posB, posC, posD, posE, posF, posG, posH;
-    int i, size;
-    int histmax, histthreshold;
-    int sumx, sumy;
+    long int posX;
+    int i;
     int hist[256] = { 0 };
 
     // Verificacao de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
-        return 0;
-    if ((src->width != dst->width) || (src->height != dst->height) || (src->channels != dst->channels))
-        return 0;
-    if (channels != 1)
-        return 0;
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL) return 0;
+    if (src->width != dst->width || src->height != dst->height || src->channels != dst->channels) return 0;
+    if (channels != 1) return 0;
 
-    size = width * height;
+    for (y = 1; y < height - 1; y++) {
+        for (x = 1; x < width - 1; x++) {
+            const long int posA = (y - 1) * bytesperline + (x - 1) * channels;
+            const long int posB = (y - 1) * bytesperline + x * channels;
+            const long int posC = (y - 1) * bytesperline + (x + 1) * channels;
+            const long int posD = y * bytesperline + (x - 1) * channels;
+            const long int posE = y * bytesperline + (x + 1) * channels;
+            const long int posF = (y + 1) * bytesperline + (x - 1) * channels;
+            const long int posG = (y + 1) * bytesperline + x * channels;
+            const long int posH = (y + 1) * bytesperline + (x + 1) * channels;
+            int sumx = datasrc[posA] * -1;
 
-    for (y = 1; y < height - 1; y++)
-    {
-        for (x = 1; x < width - 1; x++)
-        {
-            posA = (y - 1) * bytesperline + (x - 1) * channels;
-            posB = (y - 1) * bytesperline + x * channels;
-            posC = (y - 1) * bytesperline + (x + 1) * channels;
-            posD = y * bytesperline + (x - 1) * channels;
             posX = y * bytesperline + x * channels;
-            posE = y * bytesperline + (x + 1) * channels;
-            posF = (y + 1) * bytesperline + (x - 1) * channels;
-            posG = (y + 1) * bytesperline + x * channels;
-            posH = (y + 1) * bytesperline + (x + 1) * channels;
-
-            sumx = datasrc[posA] * -1;
             sumx += datasrc[posD] * -1;
             sumx += datasrc[posF] * -1;
-
             sumx += datasrc[posC] * +1;
             sumx += datasrc[posE] * +1;
             sumx += datasrc[posH] * +1;
             sumx = sumx / 3; // 3 = 1 + 1 + 1
 
-            sumy = datasrc[posA] * -1;
+            int sumy = datasrc[posA] * -1;
             sumy += datasrc[posB] * -1;
             sumy += datasrc[posC] * -1;
-
             sumy += datasrc[posF] * +1;
             sumy += datasrc[posG] * +1;
             sumy += datasrc[posH] * +1;
             sumy = sumy / 3; // 3 = 1 + 1 + 1
 
-            datadst[posX] = (unsigned char)sqrt((double)(sumx * sumx + sumy * sumy));
+            datadst[posX] = (unsigned char)sqrt(sumx * sumx + sumy * sumy);
         }
     }
 
     // Compute a grey level histogram
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             hist[datadst[y * bytesperline + x * channels]]++;
         }
     }
 
     // Threshold at the middle of the occupied levels
-    histmax = 0;
-    for (i = 0; i <= 255; i++)
-    {
+    int histmax = 0;
+    for (i = 0; i <= 255; i++) {
         histmax += hist[i];
-
-        // th = Prewitt Threshold
-        if (histmax >= (((float)size) * th))
-            break;
+        if (histmax >= (float)size * th) break; // th = Prewitt Threshold
     }
-    histthreshold = i;
+    int histthreshold = i;
 
     // Apply the threshold
-    for (y = 0; y < height; y++)
-    {
-        for (x = 0; x < width; x++)
-        {
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
             posX = y * bytesperline + x * channels;
 
-            if (datadst[posX] >= histthreshold)
-                datadst[posX] = 255;
-            else
-                datadst[posX] = 0;
+            if (datadst[posX] >= histthreshold) datadst[posX] = 255;
+            else datadst[posX] = 0;
         }
     }
-
     return 1;
 }
 
-//Desenha bounding-box
-int vc_desenha_bounding_box_rgb(IVC* src, OVC* blobs, int numeroBlobs)
+
+/**
+ * @brief Desenha bounding-box
+ *
+ * @param src Imagem de entrada
+ * @param blobs Blobs
+ * @param numeroBlobs Numero de blobs
+ * @return int
+ */
+int vc_desenha_bounding_box_rgb(const IVC* src, const OVC* blobs, int numeroBlobs)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
+    unsigned char* datasrc = src->data;
     int bytesperline_src = src->width * src->channels;
-    int channels_src = src->channels;
+    const int channels_src = src->channels;
     int width = src->width;
     int height = src->height;
-    int i, yy, xx;
-    long int posk;
 
     // Verificaoao de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
-        return 0;
-    if ((src->channels != 3))
-        return 0;
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL) return 0;
+    if (src->channels != 3) return 0;
 
-    //percorre os blobs da imagem e para cada blob vai percorrer a altura e o comprimento da sua bounding box
-    for (i = 0; i < numeroBlobs; i++)
-    {
-        //percorre a altura da box
-        for (yy = blobs[i].y; yy <= blobs[i].y + blobs[i].height; yy++)
-        {
-            //percorre a largura da box
-            for (xx = blobs[i].x; xx <= blobs[i].x + blobs[i].width; xx++)
-            {
-
-                posk = yy * bytesperline_src + xx * channels_src;
-                //condicao para colocar a 255 apenas os pixeis do limite da caixa
-                if (yy == blobs[i].y || yy == blobs[i].y + blobs[i].height || xx == blobs[i].x || xx == blobs[i].x + blobs[i].width)
-                {
+    // Percorre os blobs da imagem e para cada blob vai percorrer a altura e o comprimento da sua bounding box
+    for (int i = 0; i < numeroBlobs; i++) {
+        // Percorre a altura da box
+        for (int yy = blobs[i].y; yy <= blobs[i].y + blobs[i].height; yy++) {
+            // Percorre a largura da box
+            for (int xx = blobs[i].x; xx <= blobs[i].x + blobs[i].width; xx++){
+                long int posk = yy * bytesperline_src + xx * channels_src;
+                // Condicao para colocar a 255 apenas os pixeis do limite da caixa
+                if (yy == blobs[i].y || yy == blobs[i].y + blobs[i].height || xx == blobs[i].x || xx == blobs[i].x + blobs[i].width) {
                     datasrc[posk] = 255;
                     datasrc[posk + 1] = 255;
                     datasrc[posk + 2] = 255;
@@ -1833,76 +1827,74 @@ int vc_desenha_bounding_box_rgb(IVC* src, OVC* blobs, int numeroBlobs)
             }
         }
     }
-
     return 1;
 }
 
-//Desenha o centro de massa
-int vc_desenha_centro_massa_rgb(IVC* src, OVC* blobs, int numeroBlobs)
+
+/**
+ * @brief Desenha centro de massa
+ *
+ * @param src Imagem de entrada
+ * @param blobs Blobs
+ * @param numeroBlobs Numero de blobs
+ * @return int
+ */
+int vc_desenha_centro_massa_rgb(const IVC* src, const OVC* blobs, int numeroBlobs)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
+    unsigned char* datasrc = src->data;
     int bytesperline_src = src->width * src->channels;
-    int channels_src = src->channels;
+    const int channels_src = src->channels;
     int width = src->width;
     int height = src->height;
-    int i, yy, xx;
-    long int posk;
 
     // Verificaoao de erros
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL))
-        return 0;
-    if ((src->channels != 3))
-        return 0;
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL) return 0;
+    if (src->channels != 3) return 0;
 
-    // percorre os blobs da imagem e para cada blob vai percorrer a altura
-    //e o comprimento de uma area a volta das coordenadas do centro de massa
-    for (i = 0; i < numeroBlobs; i++)
-    {
-
-        for (yy = blobs[i].yc - 3; yy <= blobs[i].yc + 3; yy++)
-        {
-
-            for (xx = blobs[i].xc - 3; xx <= blobs[i].xc + 3; xx++)
-            {
-
-                posk = yy * bytesperline_src + xx * channels_src;
-
+    // Percorre os blobs da imagem e para cada blob vai percorrer a altura
+    // e o comprimento de uma area a volta das coordenadas do centro de massa
+    for (int i = 0; i < numeroBlobs; i++) {
+        for (int yy = blobs[i].yc - 3; yy <= blobs[i].yc + 3; yy++) {
+            for (int xx = blobs[i].xc - 3; xx <= blobs[i].xc + 3; xx++) {
+                long int posk = yy * bytesperline_src + xx * channels_src;
                 datasrc[posk] = 255;
                 datasrc[posk + 1] = 255;
                 datasrc[posk + 2] = 255;
             }
         }
     }
-
     return 1;
 }
 
-int vc_gray_lowpass_median_filter(IVC* src, IVC* dst)
-{
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int width = src->width;
-    int height = src->height;
-    int bytesperline = src->bytesperline;
-    int channels = src->channels;
-    int x, y, i, j;
-    long int posX, posA, posB, posC, posD, posE, posF, posG, posH;
-    int mediana[9];
-    int aux;
 
-    for (y = 1; y < height - 1; y++)
-    {
-        for (x = 1; x < width - 1; x++)
-        {
-            posA = (y - 1) * bytesperline + (x - 1) * channels;
-            posB = (y - 1) * bytesperline + x * channels;
-            posC = (y - 1) * bytesperline + (x + 1) * channels;
-            posD = y * bytesperline + (x - 1) * channels;
-            posX = y * bytesperline + x * channels;
-            posE = y * bytesperline + (x + 1) * channels;
-            posF = (y + 1) * bytesperline + (x - 1) * channels;
-            posG = (y + 1) * bytesperline + x * channels;
-            posH = (y + 1) * bytesperline + (x + 1) * channels;
+/**
+ * @brief Passa-baixo de mediana
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @return int
+ */
+int vc_gray_lowpass_median_filter(const IVC* src, const IVC* dst)
+{
+    unsigned char* datasrc = src->data;
+    unsigned char* datadst = dst->data;
+    const int width = src->width;
+    const int height = src->height;
+    int bytesperline = src->bytesperline;
+    const int channels = src->channels;
+    int mediana[9];
+
+    for (int y = 1; y < height - 1; y++) {
+        for (int x = 1; x < width - 1; x++) {
+            const long int posA = (y - 1) * bytesperline + (x - 1) * channels;
+            const long int posB = (y - 1) * bytesperline + x * channels;
+            const long int posC = (y - 1) * bytesperline + (x + 1) * channels;
+            const long int posD = y * bytesperline + (x - 1) * channels;
+            const long int posX = y * bytesperline + x * channels;
+            const long int posE = y * bytesperline + (x + 1) * channels;
+            const long int posF = (y + 1) * bytesperline + (x - 1) * channels;
+            const long int posG = (y + 1) * bytesperline + x * channels;
+            const long int posH = (y + 1) * bytesperline + (x + 1) * channels;
 
             mediana[0] = datasrc[posA];
             mediana[1] = datasrc[posB];
@@ -1914,13 +1906,10 @@ int vc_gray_lowpass_median_filter(IVC* src, IVC* dst)
             mediana[7] = datasrc[posG];
             mediana[8] = datasrc[posH];
 
-            for (i = 0; i < 9 - 1; i++)
-            {
-                for (j = 0; j < i + 1; j++)
-                {
-                    if (mediana[i] > mediana[j])
-                    {
-                        aux = mediana[i];
+            for (int i = 0; i < 9 - 1; i++) {
+                for (int j = 0; j < i + 1; j++) {
+                    if (mediana[i] > mediana[j]) {
+                        const int aux = mediana[i];
                         mediana[i] = mediana[j];
                         mediana[j] = aux;
                     }
@@ -1932,29 +1921,32 @@ int vc_gray_lowpass_median_filter(IVC* src, IVC* dst)
     return 1;
 }
 
-int vc_gray_highpass_filter(IVC* src, IVC* dst)
+
+/**
+ * @brief Filtro passa-alto de mediana
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @return int
+ */
+int vc_gray_highpass_filter(const IVC* src, const IVC* dst)
 {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
-    int width = src->width;
-    int height = src->height;
+    unsigned char* datasrc = src->data;
+    unsigned char* datadst = dst->data;
+    const int width = src->width;
+    const int height = src->height;
     int bytesperline = src->bytesperline;
-    int channels = src->channels;
-    int x, y;
-    long int posX, posB, posD, posE, posG;
-    int sum;
+    const int channels = src->channels;
 
-    for (y = 1; y < height - 1; y++)
-    {
-        for (x = 1; x < width - 1; x++)
-        {
-            posB = (y - 1) * bytesperline + x * channels;
-            posD = y * bytesperline + (x - 1) * channels;
-            posX = y * bytesperline + x * channels;
-            posE = y * bytesperline + (x + 1) * channels;
-            posG = (y + 1) * bytesperline + x * channels;
+    for (int y = 1; y < height - 1; y++) {
+        for (int x = 1; x < width - 1; x++) {
+            const long int posB = (y - 1) * bytesperline + x * channels;
+            const long int posD = y * bytesperline + (x - 1) * channels;
+            const long int posX = y * bytesperline + x * channels;
+            const long int posE = y * bytesperline + (x + 1) * channels;
+            const long int posG = (y + 1) * bytesperline + x * channels;
+            int sum = datasrc[posB] * -1;
 
-            sum = datasrc[posB] * -1;
             sum += datasrc[posD] * -1;
             sum += datasrc[posX] * 4;
             sum += datasrc[posE] * -1;
@@ -1966,16 +1958,22 @@ int vc_gray_highpass_filter(IVC* src, IVC* dst)
     return 1;
 }
 
-// Elimina pequenos fragmentos da imagem
-int vc_clean_image(IVC* src, IVC* dst, OVC blob) {
-    unsigned char* datasrc = (unsigned char*)src->data;
-    unsigned char* datadst = (unsigned char*)dst->data;
+
+/**
+ * @brief Elimina pequenos fragmentos da imagem
+ *
+ * @param src Imagem de entrada
+ * @param dst Imagem de saida
+ * @param blob Blobs
+ * @return int
+ */
+int vc_clean_image(const IVC* src, const IVC* dst, const OVC blob) {
+    unsigned char* datasrc = src->data;
+    unsigned char* datadst = dst->data;
     int width = src->width;
-    int height = src->height;
+    const int height = src->height;
     int bytesperline = src->bytesperline;
-    int channels = src->channels;
-    int x, y;
-    long int pos_src, pos_dst, pos_blob;
+    const int channels = src->channels;
 
     // Verificacao de erros
     if (src == NULL) {
@@ -1984,13 +1982,13 @@ int vc_clean_image(IVC* src, IVC* dst, OVC blob) {
         return 0;
     }
 
-    if ((src->width <= 0) || (src->height <= 0) || (src->data == NULL)) {
+    if (src->width <= 0 || src->height <= 0 || src->data == NULL) {
         printf("Error -> vc_clean_image():\n\tImage Dimensions or data are missing!\n");
         getchar();
         return 0;
     }
 
-    if ((dst->width <= 0) || (dst->height <= 0) || (dst->data == NULL)) {
+    if (dst->width <= 0 || dst->height <= 0 || dst->data == NULL) {
         printf("Error -> vc_clean_image():\n\tDestination Image Dimensions or data are missing!\n");
         getchar();
         return 0;
@@ -2006,14 +2004,13 @@ int vc_clean_image(IVC* src, IVC* dst, OVC blob) {
     memcpy(datadst, datasrc, bytesperline * height);
 
     // Limpar a area do blob na imagem de destino
-    for (y = blob.y; y < blob.y + blob.height; y++) {
-        for (x = blob.x; x < blob.x + blob.width; x++) {
-            pos_blob = y * bytesperline + x * channels;
+    for (int y = blob.y; y < blob.y + blob.height; y++) {
+        for (int x = blob.x; x < blob.x + blob.width; x++) {
+            const long int pos_blob = y * bytesperline + x * channels;
 
             if (channels == 1) {
                 datadst[pos_blob] = 0; // Imagem em escala de cinza
-            }
-            else if (channels == 3) {
+            } else if (channels == 3) {
                 datadst[pos_blob] = 0; // Canal R
                 datadst[pos_blob + 1] = 0; // Canal G
                 datadst[pos_blob + 2] = 0; // Canal B
@@ -2022,4 +2019,3 @@ int vc_clean_image(IVC* src, IVC* dst, OVC blob) {
     }
     return 1;
 }
-
