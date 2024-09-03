@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
-#include "../include/vc.h"
+#include "vc.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -20,14 +20,12 @@
  * @param levels Niveis
  * @return image
  */
-IVC* vc_image_new(int width, int height, int channels, int levels)
+IVC* vc_image_new(const int width, const int height, const int channels, const int levels)
 {
-    IVC* image = (IVC*)malloc(sizeof(IVC));
+    IVC* image = malloc(sizeof(IVC));
 
-    if (image == NULL)
-        return NULL;
-    if ((levels <= 0) || (levels > 255))
-        return NULL;
+    if (image == NULL) return NULL;
+    if (levels <= 0 || levels > 255) return NULL;
 
     image->width = width;
     image->height = height;
@@ -36,10 +34,7 @@ IVC* vc_image_new(int width, int height, int channels, int levels)
     image->bytesperline = image->width * image->channels;
     image->data = (unsigned char*)malloc(image->width * image->height * image->channels * sizeof(char));
 
-    if (image->data == NULL)
-    {
-        return vc_image_free(image);
-    }
+    if (image->data == NULL) return vc_image_free(image);
 
     return image;
 }
@@ -87,12 +82,9 @@ int vc_rgb_to_hsv(const IVC* src, const IVC* dst) {
     const int channel_dst = dst->channels;
     int bytesperline_src = width_src * channels_src, bytesperline_dst = width_dst * channel_dst;
 
-    if (width_src <= 0 || height_src <= 0 || data_src == NULL)
-        return 0;
-    if (channels_src != 3 || channel_dst != 3)
-        return 0;
-    if (width_src != width_dst || height_src != height_dst)
-        return 0;
+    if (width_src <= 0 || height_src <= 0 || data_src == NULL) return 0;
+    if (channels_src != 3 || channel_dst != 3) return 0;
+    if (width_src != width_dst || height_src != height_dst) return 0;
 
     for (int y = 0; y < height_src; y++) {
         for (int x = 0; x < width_src; x++) {

@@ -12,6 +12,7 @@ add_executable(main src/main.cpp src/vc.c
         src/utility.cpp
         src/resistor_detection.cpp
         src/image_processing.cpp
+        include/vc.h
         include/video_processor.h
         include/resistor_detection.h
         include/image_processing.h
